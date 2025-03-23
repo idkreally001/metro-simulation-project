@@ -3,24 +3,30 @@ import heapq
 from typing import Dict, List, Set, Tuple, Optional
 
 class Station:
-    def __init__(self, idx: str, name: str, line: str):
+    def __init__(self, idx: str, name: str, line: str, x: float = 0, y: float = 0):
         self.idx = idx
         self.name = name
         self.line = line
+        self.x = x  # x-coordinate for heuristic
+        self.y = y  # y-coordinate for heuristic
         self.neighbors: List[Tuple['Station', int]] = []  # (station, time) tuples
 
     def add_neighbor(self, station: 'Station', time: int):
         self.neighbors.append((station, time))
+
+    def distance_to(self, other: 'Station') -> float:
+        """Euclidean distance to another station for heuristic."""
+        return ((self.x - other.x) ** 2 + (self.y - other.y) ** 2) ** 0.5
 
 class MetroNetwork:
     def __init__(self):
         self.stations: Dict[str, Station] = {}
         self.lines: Dict[str, List[Station]] = defaultdict(list)
 
-    def add_station(self, idx: str, name: str, line: str) -> None:
+    def add_station(self, idx: str, name: str, line: str, x: float = 0, y: float = 0) -> None:
         """Add a station to the metro network."""
         if idx not in self.stations:
-            station = Station(idx, name, line)
+            station = Station(idx, name, line, x, y)
             self.stations[idx] = station
             self.lines[line].append(station)
 
@@ -66,7 +72,7 @@ class MetroNetwork:
 
     def find_fastest_route(self, start_id: str, target_id: str) -> Optional[Tuple[List[Station], int]]:
         """
-        A* Algorithm: Finds the fastest route.
+        A* Algorithm: Finds the fastest route with a heuristic.
         """
         if start_id not in self.stations or target_id not in self.stations:
             print("Error: One or both stations do not exist.")
@@ -76,11 +82,11 @@ class MetroNetwork:
         target = self.stations[target_id]
 
         # Priority queue for A* and a dictionary to store the shortest time for each station
-        pq = [(0, id(start), start, [start])]
+        pq = [(0, 0, start, [start])]  # (total_time, heuristic, current_station, path)
         shortest_time = {start: 0}
 
         while pq:
-            current_time, _, current_station, path = heapq.heappop(pq)
+            current_time, current_heuristic, current_station, path = heapq.heappop(pq)
 
             # If we reach the target, return the path and the total time
             if current_station == target:
@@ -89,11 +95,13 @@ class MetroNetwork:
             # Check the neighbors
             for neighbor, time in current_station.neighbors:
                 new_time = current_time + time
+                heuristic = neighbor.distance_to(target)
 
                 # If a shorter time is found, add it to the queue
                 if neighbor not in shortest_time or new_time < shortest_time[neighbor]:
                     shortest_time[neighbor] = new_time
-                    heapq.heappush(pq, (new_time, id(neighbor), neighbor, path + [neighbor]))
+                    total_time = new_time + heuristic  # Total time with heuristic
+                    heapq.heappush(pq, (new_time, heuristic, neighbor, path + [neighbor]))
 
         return None  # Return None if no route is found
 
@@ -101,20 +109,20 @@ class MetroNetwork:
 if __name__ == "__main__":
     metro = MetroNetwork()
 
-    # Add stations
-    for idx, name, line in [
-        ("A1", "Kızılay", "Red Line"),
-        ("A2", "Ulus", "Red Line"),
-        ("A3", "Sıhhiye", "Blue Line"),
-        ("A4", "Aşti", "Blue Line"),
-        ("A5", "Batıkent", "Green Line"),
-        ("A6", "Demetevler", "Green Line"),
-        ("A7", "Keçiören", "Orange Line"),
-        ("A8", "Gar", "Blue Line"),
-        ("A9", "Airport", "Orange Line"),
-        ("A10", "Beşevler", "Red Line")
+    # Add stations (with hypothetical coordinates for heuristic purposes)
+    for idx, name, line, x, y in [
+        ("A1", "Kızılay", "Red Line", 1, 1),
+        ("A2", "Ulus", "Red Line", 1, 2),
+        ("A3", "Sıhhiye", "Blue Line", 2, 3),
+        ("A4", "Aşti", "Blue Line", 3, 4),
+        ("A5", "Batıkent", "Green Line", 4, 5),
+        ("A6", "Demetevler", "Green Line", 5, 5),
+        ("A7", "Keçiören", "Orange Line", 6, 6),
+        ("A8", "Gar", "Blue Line", 7, 7),
+        ("A9", "Airport", "Orange Line", 8, 8),
+        ("A10", "Beşevler", "Red Line", 9, 9)
     ]:
-        metro.add_station(idx, name, line)
+        metro.add_station(idx, name, line, x, y)
 
     # Add connections
     for station1, station2, time in [
