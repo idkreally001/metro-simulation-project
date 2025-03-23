@@ -93,8 +93,6 @@ Number of transfers: 1
 Total stations visited: 2
 ```
 
-... (Add other test results here)
-
 ## Future Development Ideas
 
 * Implement a graphical user interface (GUI) for visualizing the metro network and the routes. [cite: 26]
